@@ -32,6 +32,11 @@ services:
     environment:
       POSTGRES_USER: fider
       POSTGRES_PASSWORD: s0m3g00dp4ssw0rd
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fider"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   app:
     restart: always
     image: getfider/fider:stable
@@ -68,6 +73,11 @@ services:
       # EMAIL_AWSSES_REGION: us-east-1
       # EMAIL_AWSSES_ACCESS_KEY_ID: youraccesskeygoeshere
       # EMAIL_AWSSES_SECRET_ACCESS_KEY: yoursecretkeygoeshere
+    depends_on:
+      db:
+        condition: service_healthy
+      smtp:
+        condition: service_started
 ```
 
 Pay close attention to the BASE_URL field; ensure it is set to the correct public URL and that the HOST is correct (https/http).
