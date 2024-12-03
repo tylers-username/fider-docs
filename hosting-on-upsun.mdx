@@ -1,0 +1,60 @@
+The Fider application ships with a `.upsun/config.yaml` that defines and version-controls applications and services. This enables you to simply create a project on Upsun and push your code to have a ready-to-use Fider instance.
+
+### Prerequisites
+
+##### An [Upsun](https://upsun.com) account
+
+It's free to get started with the Upsun trial. [Sign up](https://auth.upsun.com/register)
+
+##### The Upsun CLI (optional)
+
+The Upsun CLI is optional, but useful for commands like `upsun project:create` for creating an app project and `upsun push` to deploy code. Comprehensive installation docs can be found [here](https://docs.upsun.com/administration/cli.html).
+
+###### Install via Homebrew
+
+```bash
+brew install platformsh/tap/upsun-cli
+```
+
+###### Install via Bash
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
+```
+
+###### Install via Scoop
+
+```bash
+scoop bucket add platformsh https://github.com/platformsh/homebrew-tap.git
+scoop install upsun
+```
+
+##### E-mail Sender (optional)
+
+This Fider repository is pre-configured to use Upsun's built-in SMTP service. However, we recommend switching to Mailgun when you are ready to go to production.
+
+### Deploying your instance
+
+##### Step 1: Create a new Upsun project
+
+* **Via the Upsun CLI**: `upsun project:create`
+* **Via Upsun Console**: Click "Get Started" from [console.upsun.com](https://console.upsun.com)
+
+Your Upsun project acts as a Git remote for your code—enabling you to deploy production changes with no more than `git push`. If you used the Upsun CLI to create your project, the remote has already been added as `upsun` for you.
+
+##### Step 2: Deploy your application
+
+1. (optional) `upsun project:set-remote` - Needed if you created your project via Upsun Console
+2. `upsun push` - the same as `git push upsun`
+
+**🥳 Congrats!** Your project is now running on Upsun. You can get the public URL to Fider by running `upsun url --primary`.
+
+**ℹ️ Tip:** The default SMTP provided by Upsun may land your Fider emails in spam
+
+**Reminder:** To keep your instance always up to date with latest features and fixes, update your fork every once in a while.
+
+##### Future Maintenance (optional)
+
+To simplify first-time setup of Fider on Upsun, a `.environment` file has been provided which provides Fider's expected environment variables. The `.environment` file may be simplified by migrating some values to Upsun's [env variable manager](https://docs.upsun.com/development/variables/set-variables.html#create-environment-specific-variables) which can be accessed via the [Upsun Console](https://console.upsun.com) and the Upsun CLI. 
+
+It is recommended that secure values be set using Upsun's env variable manager to avoid committing them to git.
