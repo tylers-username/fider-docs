@@ -1,5 +1,3 @@
-The Fider application ships with a `.upsun/config.yaml` that defines and version-controls applications and services. This enables you to simply create a project on Upsun and push your code to have a ready-to-use Fider instance.
-
 ### Prerequisites
 
 ##### An [Upsun](https://upsun.com) account
@@ -31,11 +29,122 @@ scoop install upsun
 
 ##### E-mail Sender (optional)
 
-This Fider repository is pre-configured to use Upsun's built-in SMTP service. However, we recommend switching to Mailgun when you are ready to go to production.
+This `.environment` file recommended bellow configures your Fider app to use Upsun's built-in SMTP service. However, we recommend switching to Mailgun or your preferred email service when you are ready to go to production.
+
+#### Configure your app for Upsun version-controlled hosting
+1. Add your `.upsun/config.yaml` to version control your Fider app infrastructure
+   ```yaml
+    # Defines and version-controls your hosting infrastructure on Upsun.com
+    # applications: defines applications within this repository to deploy.
+    ---
+    applications:
+      fider-application:
+        source:
+          root: "/"
+    
+        type: "golang:1.22"
+    
+        relationships:
+          postgresql:
+            # service: the service ("postgresql") defined in .upsun/services.yaml
+            service: postgresql
+            endpoint: admin
+        
+        web:
+          commands:
+            start: ./fider
+          upstream:
+            socket_family: tcp
+          locations:
+            "/":
+              passthru: true
+    
+        timezone: "Europe/Paris"
+    
+        variables:
+          env:
+            N_PREFIX: "/app/.global"
+    
+        build:
+          flavor: none
+    
+        dependencies:
+          nodejs:
+            n: "*"
+            npx: "*"
+    
+        hooks:
+          build: |
+            set -eux
+            n auto || n lts
+            hash -r
+            npm i
+            go build
+            npm run  heroku-postbuild
+    
+          deploy: |
+            set -eux
+            ./fider migrate
+    
+    
+    # Defines and version-controls your services requirements
+    # services: services can be databases, cache, storage and more
+    services:
+      # postgressql: Can be changed to any string value.
+      #    Renaming must be reflected in `applications.{app-name}.relationships`
+      postgresql:
+        type: postgresql:15
+        configuration:
+          databases:
+            - fider
+          endpoints:
+            admin:
+              default_database: fider
+              privileges:
+                fider: admin
+    
+    
+    # Defines and version-controls the routes required by the defined applications
+    # routes: enables you to define hostname and path proxies
+    routes:
+      "https://{default}/":
+        type: upstream
+        # upstream: Points our default domain to our application defined above.
+        upstream: "fider-application:http"
+      "https://www.{default}":
+        type: redirect
+        to: "https://{default}/"
+    ```
+2. Add or modify your `.environment` file:
+   ```bash
+   # Set database environment variables
+   export DB_HOST="$POSTGRESQL_HOST"
+   export DB_PORT="$POSTGRESQL_PORT"
+   export DB_PATH="$POSTGRESQL_PATH"
+   export DB_DATABASE="$DB_PATH"
+   export DB_USERNAME="$POSTGRESQL_USERNAME"
+   export DB_PASSWORD="$POSTGRESQL_PASSWORD"
+   export DB_SCHEME="postgresql"
+   export DATABASE_URL="${DB_SCHEME}://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_PATH}?sslmode=disable"
+   
+   # Set email service environment variables
+   export EMAIL_NOREPLY="noreply@platform.sh"
+   if [ "$PLATFORM_ENVIRONMENT_TYPE" != "production" ]; then
+     export EMAIL_SMTP_HOST="only_available_in_prod"
+   else
+     export EMAIL_SMTP_HOST="${PLATFORM_SMTP_HOST}"
+   fi
+   export EMAIL_SMTP_PORT="25"
+   
+   # Set general environment specifics
+   export BASE_URL=$(echo $PLATFORM_ROUTES | base64 --decode | jq -r 'to_entries[] | select(.value.primary == true) | .key')
+   export GO_ENV="${PLATFORM_ENVIRONMENT_TYPE}"
+   export JWT_SECRET=$PLATFORM_PROJECT_ENTROPY
+   ```
 
 ### Deploying your instance
 
-##### Step 1: Create a new Upsun project
+##### Step 1: Create an Upsun project to host your app
 
 * **Via the Upsun CLI**: `upsun project:create`
 * **Via Upsun Console**: Click "Get Started" from [console.upsun.com](https://console.upsun.com)
@@ -55,6 +164,4 @@ Your Upsun project acts as a Git remote for your code—enabling you to deploy p
 
 ##### Future Maintenance (optional)
 
-To simplify first-time setup of Fider on Upsun, a `.environment` file has been provided which provides Fider's expected environment variables. The `.environment` file may be simplified by migrating some values to Upsun's [env variable manager](https://docs.upsun.com/development/variables/set-variables.html#create-environment-specific-variables) which can be accessed via the [Upsun Console](https://console.upsun.com) and the Upsun CLI. 
-
-It is recommended that secure values be set using Upsun's env variable manager to avoid committing them to git.
+It is recommended that secure values be set using Upsun's env variable manager to avoid committing them to git. You can access the variable manager via the Upsun CLI.
